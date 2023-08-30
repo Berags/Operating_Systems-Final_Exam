@@ -48,16 +48,20 @@ class Queue {
     private int id = 0;
 
     public synchronized void add(Msg m) throws InterruptedException {
+        // wait if queue is full
         while (queue.size() >= L) wait();
         queue.add(m);
+        // sorting the list based on the id (progressive number)
         queue.sort(Comparator.comparingInt(a -> a.id)); // same as queue.sort((a, b) -> (a.id - b.id));
         notifyAll();
     }
 
     public synchronized Msg[] get() throws InterruptedException {
+        // wait if queue is empty and doesn't contain progressive messages
+        // since the queue is sorted it is only necessary to check the first two elements
         while (queue.size() < 2 || (queue.get(0).id != id || queue.get(1).id != (id + 1))) {
             if (!Notifier.isRunning() && queue.size() < 2) {
-                //System.out.println("Termino " + queue.size());
+                // No more elements in queue
                 return null;
             }
             wait();
