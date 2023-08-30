@@ -3,6 +3,7 @@ import java.util.LinkedList;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
+        // Creating the threads
         Queue q = new Queue();
         final int N = 10;
         final int M = 5;
@@ -18,24 +19,32 @@ public class Main {
             processors[i] = new ProcessorThread(q);
             processors[i].start();
         }
+        // wait for 30 seconds while Generators and Processors are running
         Thread.sleep(1000 * 30);
         Notifier.stop();
-        for (int i = 0; i < generators.length; i++) {
-            generators[i].interrupt();
-            generated += generators[i].getGenerated();
-            System.out.println("Gen" + i + " ha generato " + generators[i].getGenerated() + " messaggi");
+        // waiting for threads to finish
+        for (GeneratorThread generator : generators) {
+            generator.interrupt();
         }
-        for (int i = 0; i < processors.length; i++) {
-            processors[i].join();
-            processed += processors[i].getProcessed();
-            System.out.println("Pro" + i + " ha processato " + processors[i].getProcessed() + " messaggi");
+        for (ProcessorThread processor : processors) {
+            processor.join();
         }
+
+        // printing the results
         System.out.print("Queue [");
         for (var e :
                 q.getQueue()) {
             System.out.print(e.id + " ");
         }
         System.out.println("]");
+        for (int i = 0; i < generators.length; i++) {
+            generated += generators[i].getGenerated();
+            System.out.println("Gen" + i + " ha generato " + generators[i].getGenerated() + " messaggi");
+        }
+        for (int i = 0; i < processors.length; i++) {
+            processed += processors[i].getProcessed();
+            System.out.println("Pro" + i + " ha processato " + processors[i].getProcessed() + " messaggi");
+        }
         System.out.println("Generati = " + generated);
         System.out.println("Processati = " + processed);
     }
@@ -43,7 +52,7 @@ public class Main {
 
 class Queue {
     private final LinkedList<Msg> queue = new LinkedList<>();
-    private final int L = 25;
+    private static final int L = 25;
     private int id = 0;
 
     public synchronized void add(Msg m) throws InterruptedException {
@@ -52,6 +61,7 @@ class Queue {
         queue.add(m);
         // sorting the list based on the id (progressive number)
         queue.sort(Comparator.comparingInt(a -> a.id)); // same as queue.sort((a, b) -> (a.id - b.id));
+        // awakening all the threads
         notifyAll();
     }
 
@@ -61,11 +71,11 @@ class Queue {
         while (queue.size() < 2 || (queue.get(0).id != id || queue.get(1).id != (id + 1))) {
             if (!Notifier.isRunning() && queue.size() < 2) {
                 // No more elements in queue
-                //notifyAll();
                 return null;
             }
             wait();
         }
+        // getting the messages
         Msg[] res = new Msg[]{queue.get(0), queue.get(1)};
         queue.removeFirst();
         queue.removeFirst();
@@ -135,9 +145,11 @@ class ProcessorThread extends Thread {
             try {
                 Msg[] res = q.get();
                 if (res == null) {
+                    // since the response is null the processor has no other messages to handle
+                    // terminating the thread
                     return;
                 }
-                System.out.println(getName() + " ha acquisito " + res[0].id + " e " + res[1].id);
+                System.out.println(getName() + " ha acquisito (" + res[0].id + ", " + res[1].id + ")");
                 processed += 2;
             } catch (InterruptedException ignored) {
             }
