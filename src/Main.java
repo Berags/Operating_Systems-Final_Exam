@@ -1,4 +1,3 @@
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 
@@ -22,14 +21,14 @@ public class Main {
         Thread.sleep(1000 * 30);
         Notifier.stop();
         for (int i = 0; i < generators.length; i++) {
-            generators[i].join();
+            generators[i].interrupt();
             generated += generators[i].getGenerated();
             System.out.println("Gen" + i + " ha generato " + generators[i].getGenerated() + " messaggi");
         }
         for (int i = 0; i < processors.length; i++) {
             processors[i].join();
             processed += processors[i].getProcessed();
-            System.out.println("Pro" + i + " ha processato " + generators[i].getGenerated() + " messaggi");
+            System.out.println("Pro" + i + " ha processato " + processors[i].getProcessed() + " messaggi");
         }
         System.out.print("Queue [");
         for (var e :
@@ -62,6 +61,7 @@ class Queue {
         while (queue.size() < 2 || (queue.get(0).id != id || queue.get(1).id != (id + 1))) {
             if (!Notifier.isRunning() && queue.size() < 2) {
                 // No more elements in queue
+                //notifyAll();
                 return null;
             }
             wait();
@@ -103,6 +103,7 @@ class GeneratorThread extends Thread {
     public void run() {
         while (Notifier.isRunning()) {
             int id = SharedCounter.get();
+            generated++;
             try {
                 sleep((long) (Math.random() * 6) * 1000);
             } catch (InterruptedException ignored) {
@@ -112,7 +113,6 @@ class GeneratorThread extends Thread {
                 q.add(m);
             } catch (InterruptedException ignored) {
             }
-            generated++;
         }
     }
 
@@ -135,7 +135,6 @@ class ProcessorThread extends Thread {
             try {
                 Msg[] res = q.get();
                 if (res == null) {
-                    System.out.println("Non ci sono più messaggi");
                     return;
                 }
                 System.out.println(getName() + " ha acquisito " + res[0].id + " e " + res[1].id);
