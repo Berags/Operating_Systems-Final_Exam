@@ -1,7 +1,7 @@
 import java.util.Comparator;
 import java.util.LinkedList;
 
-public class Main {
+public class Compito30Ago2023 {
     public static void main(String[] args) throws InterruptedException {
         // Creating the threads
         Queue q = new Queue();
@@ -13,10 +13,12 @@ public class Main {
         Notifier.start();
         for (int i = 0; i < generators.length; i++) {
             generators[i] = new GeneratorThread(q);
+            generators[i].setName("Gen" + i);
             generators[i].start();
         }
         for (int i = 0; i < processors.length; i++) {
             processors[i] = new ProcessorThread(q);
+            processors[i].setName("Pro" + i);
             processors[i].start();
         }
         // wait for 30 seconds while Generators and Processors are running
@@ -37,13 +39,13 @@ public class Main {
             System.out.print(e.id + " ");
         }
         System.out.println("]");
-        for (int i = 0; i < generators.length; i++) {
-            generated += generators[i].getGenerated();
-            System.out.println("Gen" + i + " ha generato " + generators[i].getGenerated() + " messaggi");
+        for (GeneratorThread generator : generators) {
+            generated += generator.getGenerated();
+            System.out.println(generator.getName() + " ha generato " + generator.getGenerated() + " messaggi");
         }
-        for (int i = 0; i < processors.length; i++) {
-            processed += processors[i].getProcessed();
-            System.out.println("Pro" + i + " ha processato " + processors[i].getProcessed() + " messaggi");
+        for (ProcessorThread processor : processors) {
+            processed += processor.getProcessed();
+            System.out.println(processor.getName() + " ha processato " + processor.getProcessed() + " messaggi");
         }
         System.out.println("Generati = " + generated);
         System.out.println("Processati = " + processed);
@@ -52,7 +54,7 @@ public class Main {
 
 class Queue {
     private final LinkedList<Msg> queue = new LinkedList<>();
-    private static final int L = 25;
+    private static final int L = 50;
     private int id = 0;
 
     public synchronized void add(Msg m) throws InterruptedException {
@@ -112,6 +114,7 @@ class GeneratorThread extends Thread {
     @Override
     public void run() {
         while (Notifier.isRunning()) {
+            // acquiring next progressive value
             int id = SharedCounter.get();
             generated++;
             try {
@@ -128,6 +131,22 @@ class GeneratorThread extends Thread {
 
     public int getGenerated() {
         return generated;
+    }
+}
+
+final class Notifier {
+    private static boolean running = false;
+
+    public static void start() {
+        running = true;
+    }
+
+    public static void stop() {
+        running = false;
+    }
+
+    public static boolean isRunning() {
+        return running;
     }
 }
 
@@ -168,21 +187,5 @@ class Msg {
     public Msg(int id, int value) {
         this.id = id;
         this.value = value;
-    }
-}
-
-final class Notifier {
-    private static boolean running = false;
-
-    public static void start() {
-        running = true;
-    }
-
-    public static void stop() {
-        running = false;
-    }
-
-    public static boolean isRunning() {
-        return running;
     }
 }
